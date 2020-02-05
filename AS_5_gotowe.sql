@@ -1,0 +1,1863 @@
+-- @ "D:\Arek\studia podyplomowe\pliki sql\AS_5_gotowe.sql"
+
+CLEAR SCREEN;
+--
+SET LINESIZE 250;
+SET PAGESIZE 200;
+
+SHOW USER;
+
+-- wyswietla komunikaty zwrotne z Oracle
+SET SERVEROUTPUT ON;
+
+-- zmień format daty
+ALTER SESSION SET 
+	nls_date_format = 'YYYY-MM-DD HH24:MI';
+
+--
+ 
+SELECT SYSDATE FROM DUAL;
+
+SELECT USER FROM DUAL;
+--
+---------------------------
+--  sekwencja kasowania
+---------------------------
+
+drop table STAN;
+drop table TYPY;
+drop table UZYWANE;
+drop table NOST;
+drop table NIEDOSTEPNE;
+drop table DOSTEPNE;
+drop table OCENA;
+drop table NOWE;
+drop table CZES_ZAM;
+drop table WERS_CZES;
+drop table MODE_WERS;
+drop table WERSJA;
+drop table CZESCI;
+drop table ZAMIENNIK;
+drop table ORYGINAL;
+drop table MODEL;
+drop table MARKA;
+
+
+---------------------------
+--  DDL create table
+---------------------------	
+create table MARKA (
+MAR_ID			number(8) NOT NULL,	
+MAR_NAZWA		varchar2(15) NOT NULL,
+MAR_KRAJ		varchar2(15)
+)
+PCTFREE 12
+TABLESPACE STUDENT_DATA;
+
+	------------------------
+	-- PRIMARY KEY
+	------------------------
+	ALTER TABLE MARKA 
+		ADD CONSTRAINT PK_MARKA
+		PRIMARY KEY (MAR_ID)
+		USING INDEX
+		PCTFREE 0
+		TABLESPACE STUDENT_INDEX;
+	
+	------------------------
+	-- SEQUENCE
+	------------------------		
+	DROP SEQUENCE SEQ_MARKA; 
+	
+	CREATE SEQUENCE SEQ_MARKA
+	INCREMENT BY 1 START WITH 1 MINVALUE 1;
+	
+	------------------------
+	-- TRIGGER
+	------------------------
+	CREATE OR REPLACE TRIGGER T_BI_MARKA
+	BEFORE INSERT ON MARKA
+	FOR EACH ROW
+	BEGIN
+		IF :NEW.MAR_ID IS NULL THEN
+			SELECT SEQ_MARKA.NEXTVAL 
+				INTO :NEW.MAR_ID FROM DUAL;
+		END IF;
+		--
+		DBMS_OUTPUT.PUT_LINE('Dodano nowy wiersz do MARKA - MAR_ID='||:NEW.MAR_ID);
+		--
+	END;
+	/ 
+	
+	------------------------
+	-- INDEX
+	------------------------	
+	CREATE INDEX IX_MAR_NAZWA
+	ON MARKA (MAR_NAZWA)
+	TABLESPACE STUDENT_INDEX;	 
+
+---------------------------
+	--  DDL create table
+---------------------------
+create table MODEL (
+MOD_ID			number(8) NOT NULL,
+MAR_ID			number(8) NOT NULL,
+MOD_NAZWA	varchar2(30) NOT NULL,
+MOD_LOGO	varchar2(30) NOT NULL
+)
+PCTFREE 12
+TABLESPACE STUDENT_DATA;
+
+	------------------------
+	-- PRIMARY KEY
+	------------------------
+	ALTER TABLE MODEL
+		ADD CONSTRAINT PK_MODEL
+		PRIMARY KEY (MOD_ID)
+		USING INDEX
+		PCTFREE 0
+		TABLESPACE STUDENT_INDEX;
+		
+	------------------------
+	--  FOREIGN Keys
+	------------------------
+	ALTER TABLE MODEL
+		ADD CONSTRAINT FK1_MODEL
+		FOREIGN KEY(MAR_ID) 
+		REFERENCES MARKA(MAR_ID) ENABLE;
+	
+	------------------------
+	-- SEQUENCE
+	------------------------		
+	DROP SEQUENCE SEQ_MODEL; 
+	
+	CREATE SEQUENCE SEQ_MODEL
+	INCREMENT BY 1 START WITH 1 MINVALUE 1;
+	
+	------------------------
+	-- TRIGGER
+	------------------------
+	CREATE OR REPLACE TRIGGER T_BI_MODEL
+	BEFORE INSERT ON MODEL
+	FOR EACH ROW
+	BEGIN
+		IF :NEW.MOD_ID IS NULL THEN
+			SELECT SEQ_MODEL.NEXTVAL 
+				INTO :NEW.MOD_ID FROM DUAL;
+		END IF;
+		--
+		DBMS_OUTPUT.PUT_LINE('Dodano nowy wiersz do MODEL - MOD_ID='||:NEW.MOD_ID);
+		--
+	END;
+	/
+	
+	------------------------
+	-- INDEX
+	------------------------	
+	CREATE INDEX IX_MOD_NAZWA
+	ON MODEL (MOD_NAZWA)
+	TABLESPACE STUDENT_INDEX;	 
+	
+
+---------------------------
+	--  DDL create table
+---------------------------		
+create table ORYGINAL (
+ORY_ID			number(8) NOT NULL,
+ORY_NAZWA		varchar2(30) NOT NULL,
+ORY_PRODUCENT	varchar2(30) NOT NULL,
+ORY_TYP			varchar2(30) NOT NULL,
+ORY_ROK			varchar2(30) NOT NULL
+)
+PCTFREE 12
+TABLESPACE STUDENT_DATA;
+
+	------------------------
+	-- PRIMARY KEY
+	------------------------
+	ALTER TABLE ORYGINAL 
+		ADD CONSTRAINT PK_ORYGINAL
+		PRIMARY KEY (ORY_ID)
+		USING INDEX
+		PCTFREE 0
+		TABLESPACE STUDENT_INDEX;
+		
+	------------------------
+	-- SEQUENCE
+	------------------------		
+	DROP SEQUENCE SEQ_ORYGINAL;
+	
+	CREATE SEQUENCE SEQ_ORYGINAL
+	INCREMENT BY 1 START WITH 1 MINVALUE 1;
+	
+	------------------------
+	-- TRIGGER
+	------------------------
+	CREATE OR REPLACE TRIGGER T_BI_ORYGINAL
+	BEFORE INSERT ON ORYGINAL
+	FOR EACH ROW
+	BEGIN
+		IF :NEW.ORY_ID IS NULL THEN
+			SELECT SEQ_ORYGINAL.NEXTVAL 
+				INTO :NEW.ORY_ID FROM DUAL;
+		END IF;
+		--
+		DBMS_OUTPUT.PUT_LINE('Dodano nowy wiersz do ORYGINAL - ORY_ID='||:NEW.ORY_ID);
+		--
+	END;
+	/
+	
+	------------------------
+	-- INDEX
+	------------------------	
+	CREATE INDEX IX_ORY_NAZWA
+	ON ORYGINAL (ORY_NAZWA)
+	TABLESPACE STUDENT_INDEX;	
+
+	CREATE INDEX IX_ORY_PRODUCENT
+	ON ORYGINAL (ORY_PRODUCENT)
+	TABLESPACE STUDENT_INDEX;
+	
+	CREATE INDEX IX_ORY_TYP
+	ON ORYGINAL (ORY_TYP)
+	TABLESPACE STUDENT_INDEX;
+	
+	CREATE INDEX IX_ORY_ROK
+	ON ORYGINAL (ORY_ROK)
+	TABLESPACE STUDENT_INDEX;
+		
+
+---------------------------
+	--  DDL create table
+---------------------------
+create table ZAMIENNIK (
+ZAM_ID			number(8) NOT NULL,
+ZAM_NAZWA		varchar2(30) NOT NULL,
+ZAM_PRODUCENT	varchar2(30) NOT NULL,
+ZAM_TYP			varchar2(30) NOT NULL,
+ZAM_MODELE		varchar2(50) NOT NULL,
+ZAM_ROK			varchar2(30) NOT NULL,
+ZAM_NR_KAT		varchar2(30) NOT NULL
+)
+PCTFREE 12
+TABLESPACE STUDENT_DATA;
+
+	------------------------
+	-- PRIMARY KEY
+	------------------------
+	ALTER TABLE ZAMIENNIK 
+		ADD CONSTRAINT PK_ZAMIENNIK
+		PRIMARY KEY (ZAM_ID)
+		USING INDEX
+		PCTFREE 0
+		TABLESPACE STUDENT_INDEX;
+	
+	------------------------
+	-- SEQUENCE
+	------------------------		
+	DROP SEQUENCE SEQ_ZAMIENNIK;
+	
+	CREATE SEQUENCE SEQ_ZAMIENNIK
+	INCREMENT BY 1 START WITH 1 MINVALUE 1;
+	
+	------------------------
+	-- TRIGGER
+	------------------------
+	CREATE OR REPLACE TRIGGER T_BI_ZAMIENNIK
+	BEFORE INSERT ON ZAMIENNIK
+	FOR EACH ROW
+	BEGIN
+		IF :NEW.ZAM_ID IS NULL THEN
+			SELECT SEQ_ZAMIENNIK.NEXTVAL 
+				INTO :NEW.ZAM_ID FROM DUAL;
+		END IF;
+		--
+		DBMS_OUTPUT.PUT_LINE('Dodano nowy wiersz do ZAMIENNIK - ZAM_ID='||:NEW.ZAM_ID);
+		--
+	END;
+	/
+	
+	------------------------
+	-- INDEX
+	------------------------	
+	CREATE INDEX IX_ZAM_NAZWA
+	ON ZAMIENNIK (ZAM_NAZWA)
+	TABLESPACE STUDENT_INDEX;
+
+	CREATE INDEX IX_ZAM_PRODUCENT
+	ON ZAMIENNIK (ZAM_PRODUCENT)
+	TABLESPACE STUDENT_INDEX;
+	
+	CREATE INDEX IX_ZAM_TYP
+	ON ZAMIENNIK (ZAM_TYP)
+	TABLESPACE STUDENT_INDEX;
+	
+	CREATE INDEX IX_ZAM_MODELE
+	ON ZAMIENNIK (ZAM_MODELE)
+	TABLESPACE STUDENT_INDEX;
+	
+	CREATE INDEX IX_ZAM_ROK
+	ON ZAMIENNIK (ZAM_ROK)
+	TABLESPACE STUDENT_INDEX;
+	
+	CREATE INDEX IX_ZAM_NR_KAT
+	ON ZAMIENNIK (ZAM_NR_KAT)
+	TABLESPACE STUDENT_INDEX;
+	
+---------------------------
+	--  DDL create table
+---------------------------		
+create table CZESCI (
+CZES_ID			number(8) NOT NULL,
+MOD_ID			number(8) NOT NULL,
+ORY_ID			number(8) NOT NULL,
+CZES_NAZWA		varchar2(100) NOT NULL,
+CZES_RODZAJ		varchar2(30) NOT NULL
+)
+PCTFREE 12
+TABLESPACE STUDENT_DATA;
+
+	------------------------
+	-- PRIMARY KEY
+	------------------------
+	ALTER TABLE CZESCI 
+		ADD CONSTRAINT PK_CZESCI
+		PRIMARY KEY (CZES_ID)
+		USING INDEX
+		PCTFREE 0
+		TABLESPACE STUDENT_INDEX;
+		
+	------------------------
+	--  FOREIGN Keys
+	------------------------
+	ALTER TABLE CZESCI
+		ADD CONSTRAINT FK1_CZESCI
+		FOREIGN KEY(MOD_ID) 
+		REFERENCES MODEL(MOD_ID) ENABLE;
+		
+	ALTER TABLE CZESCI
+		ADD CONSTRAINT FK2_CZESCI
+		FOREIGN KEY(ORY_ID) 
+		REFERENCES ORYGINAL(ORY_ID) ENABLE;
+	
+	------------------------
+	-- SEQUENCE
+	------------------------		
+	DROP SEQUENCE SEQ_CZESCI; 
+	
+	CREATE SEQUENCE SEQ_CZESCI
+	INCREMENT BY 1 START WITH 1 MINVALUE 1;
+	
+	------------------------
+	-- TRIGGER
+	------------------------
+	CREATE OR REPLACE TRIGGER T_BI_CZESCI
+	BEFORE INSERT ON CZESCI
+	FOR EACH ROW
+	BEGIN
+		IF :NEW.CZES_ID IS NULL THEN
+			SELECT SEQ_CZESCI.NEXTVAL 
+				INTO :NEW.CZES_ID FROM DUAL;
+		END IF;
+		--
+		DBMS_OUTPUT.PUT_LINE('Dodano nowy wiersz do CZESCI - CZES_ID='||:NEW.CZES_ID);
+		--
+	END;
+	/
+	
+	------------------------
+	-- INDEX
+	------------------------	
+	CREATE INDEX IX_CZES_NAZWA
+	ON CZESCI (CZES_NAZWA)
+	TABLESPACE STUDENT_INDEX;
+	
+	CREATE INDEX IX_CZES_RODZAJ
+	ON CZESCI (CZES_RODZAJ)
+	TABLESPACE STUDENT_INDEX;
+		
+---------------------------
+	--  DDL create table
+---------------------------		
+create table WERSJA (
+WER_ID			number(8) NOT NULL,
+WER_CENA		number(8) NOT NULL,
+WER_NAZWA		varchar2(100) NOT NULL,
+WER_ROK			varchar2(30) NOT NULL,
+WER_TYP			varchar2(30) NOT NULL
+)
+PCTFREE 12
+TABLESPACE STUDENT_DATA;
+
+	------------------------
+	-- PRIMARY KEY
+	------------------------
+	ALTER TABLE WERSJA 
+		ADD CONSTRAINT PK_WERSJA
+		PRIMARY KEY (WER_ID)
+		USING INDEX
+		PCTFREE 0
+		TABLESPACE STUDENT_INDEX;
+	
+	------------------------
+	-- SEQUENCE
+	------------------------		
+	DROP SEQUENCE SEQ_WERSJA;
+	
+	CREATE SEQUENCE SEQ_WERSJA
+	INCREMENT BY 1 START WITH 1 MINVALUE 1;
+	
+	------------------------
+	-- TRIGGER
+	------------------------
+	CREATE OR REPLACE TRIGGER T_BI_WERSJA
+	BEFORE INSERT ON WERSJA
+	FOR EACH ROW
+	BEGIN
+		IF :NEW.WER_ID IS NULL THEN
+			SELECT SEQ_WERSJA.NEXTVAL 
+				INTO :NEW.WER_ID FROM DUAL;
+		END IF;
+		--
+		DBMS_OUTPUT.PUT_LINE('Dodano nowy wiersz do WERSJA - WER_ID='||:NEW.WER_ID);
+		--
+	END;
+	/
+	
+	------------------------
+	-- INDEX
+	------------------------	
+	CREATE INDEX IX_WER_NAZWA
+	ON WERSJA (WER_NAZWA)
+	TABLESPACE STUDENT_INDEX;
+	
+	CREATE INDEX IX_WER_ROK
+	ON WERSJA (WER_ROK)
+	TABLESPACE STUDENT_INDEX;
+	
+	CREATE INDEX IX_WER_TYP
+	ON WERSJA (WER_TYP)
+	TABLESPACE STUDENT_INDEX;
+
+
+---------------------------
+	--  DDL create table
+---------------------------	
+create table MODE_WERS (
+MOWE_ID	number(8) NOT NULL,
+MOD_ID			number(8) NOT NULL,
+WER_ID			number(8) NOT NULL
+)
+PCTFREE 12
+TABLESPACE STUDENT_DATA;
+
+	------------------------
+	-- PRIMARY KEY
+	------------------------
+	ALTER TABLE MODE_WERS 
+		ADD CONSTRAINT PK_MODE_WERS
+		PRIMARY KEY (MOWE_ID)
+		USING INDEX
+		PCTFREE 0
+		TABLESPACE STUDENT_INDEX;
+		
+	------------------------
+	--  FOREIGN Keys
+	------------------------
+	ALTER TABLE MODE_WERS
+		ADD CONSTRAINT FK1_MODE_WERS
+		FOREIGN KEY(MOD_ID) 
+		REFERENCES MODEL(MOD_ID) ENABLE;
+		
+	ALTER TABLE MODE_WERS
+		ADD CONSTRAINT FK2_MODE_WERS
+		FOREIGN KEY(WER_ID) 
+		REFERENCES WERSJA(WER_ID) ENABLE;
+		
+	------------------------
+	-- SEQUENCE
+	------------------------		
+	DROP SEQUENCE SEQ_MODE_WERS;
+	
+	CREATE SEQUENCE SEQ_MODE_WERS
+	INCREMENT BY 1 START WITH 1 MINVALUE 1;
+	
+	------------------------
+	-- TRIGGER
+	------------------------
+	CREATE OR REPLACE TRIGGER T_BI_MODE_WERS
+	BEFORE INSERT ON MODE_WERS
+	FOR EACH ROW
+	BEGIN
+		IF :NEW.MOWE_ID IS NULL THEN
+			SELECT SEQ_MODE_WERS.NEXTVAL 
+				INTO :NEW.MOWE_ID FROM DUAL;
+		END IF;
+		--
+		DBMS_OUTPUT.PUT_LINE('Dodano nowy wiersz do MODE_WERS - MOWE_ID='||:NEW.MOWE_ID);
+		--
+	END;
+	/
+
+---------------------------
+	--  DDL create table
+---------------------------		
+create table WERS_CZES (
+WECZ_ID			number(8) NOT NULL,
+CZES_ID			number(8) NOT NULL,
+WER_ID			number(8) NOT NULL
+)
+PCTFREE 12
+TABLESPACE STUDENT_DATA;
+
+	------------------------
+	-- PRIMARY KEY
+	------------------------
+	ALTER TABLE WERS_CZES 
+		ADD CONSTRAINT PK_WERS_CZES
+		PRIMARY KEY (WECZ_ID)
+		USING INDEX
+		PCTFREE 0
+		TABLESPACE STUDENT_INDEX;
+		
+	------------------------
+	--  FOREIGN Keys
+	------------------------
+	ALTER TABLE WERS_CZES
+		ADD CONSTRAINT FK1_WERS_CZES
+		FOREIGN KEY(CZES_ID) 
+		REFERENCES CZESCI(CZES_ID) ENABLE;
+		
+	ALTER TABLE WERS_CZES
+		ADD CONSTRAINT FK2_WERS_CZES
+		FOREIGN KEY(WER_ID) 
+		REFERENCES WERSJA(WER_ID) ENABLE;
+	
+	------------------------
+	-- SEQUENCE
+	------------------------		
+	DROP SEQUENCE SEQ_WERS_CZES; 
+	
+	CREATE SEQUENCE SEQ_WERS_CZES
+	INCREMENT BY 1 START WITH 1 MINVALUE 1;
+	
+	------------------------
+	-- TRIGGER
+	------------------------
+	CREATE OR REPLACE TRIGGER T_BI_WERS_CZES
+	BEFORE INSERT ON WERS_CZES
+	FOR EACH ROW
+	BEGIN
+		IF :NEW.WECZ_ID IS NULL THEN
+			SELECT SEQ_WERS_CZES.NEXTVAL 
+				INTO :NEW.WECZ_ID FROM DUAL;
+		END IF;
+		--
+		DBMS_OUTPUT.PUT_LINE('Dodano nowy wiersz do WERS_CZES - WECZ_ID='||:NEW.WECZ_ID);
+		--
+	END;
+	/
+	
+---------------------------
+--  DDL create table
+---------------------------	
+create table CZES_ZAM (
+CZEZA_ID			number(8) NOT NULL,
+CZES_ID			number(8) NOT NULL,
+ZAM_ID			number(8) NOT NULL
+)
+PCTFREE 12
+TABLESPACE STUDENT_DATA;
+
+	------------------------
+	-- PRIMARY KEY
+	------------------------
+	ALTER TABLE CZES_ZAM 
+		ADD CONSTRAINT PK_CZES_ZAM
+		PRIMARY KEY (CZEZA_ID)
+		USING INDEX
+		PCTFREE 0
+		TABLESPACE STUDENT_INDEX;		
+		
+	------------------------
+	--  FOREIGN Keys
+	------------------------
+	ALTER TABLE CZES_ZAM
+		ADD CONSTRAINT FK1_CZES_ZAM
+		FOREIGN KEY(CZES_ID) 
+		REFERENCES CZESCI(CZES_ID) ENABLE;
+		
+	ALTER TABLE CZES_ZAM
+		ADD CONSTRAINT FK2_CZES_ZAM
+		FOREIGN KEY(ZAM_ID) 
+		REFERENCES ZAMIENNIK(ZAM_ID) ENABLE;
+		
+	------------------------
+	-- SEQUENCE
+	------------------------		
+	DROP SEQUENCE SEQ_CZES_ZAM; 
+	
+	CREATE SEQUENCE SEQ_CZES_ZAM
+	INCREMENT BY 1 START WITH 1 MINVALUE 1;
+	
+	------------------------
+	-- TRIGGER
+	------------------------
+	CREATE OR REPLACE TRIGGER T_BI_CZES_ZAM
+	BEFORE INSERT ON CZES_ZAM
+	FOR EACH ROW
+	BEGIN
+		IF :NEW.CZEZA_ID IS NULL THEN
+			SELECT SEQ_CZES_ZAM.NEXTVAL 
+				INTO :NEW.CZEZA_ID FROM DUAL;
+		END IF;
+		--
+		DBMS_OUTPUT.PUT_LINE('Dodano nowy wiersz do CZES_ZAM - CZEZA_ID='||:NEW.CZEZA_ID);
+		--
+	END;
+	/
+		
+---------------------------
+--  DDL create table
+---------------------------	
+create table NOWE (
+NOWE_ID			number(8) NOT NULL,	
+NOWE_TYP		varchar2(40)
+)
+PCTFREE 12
+TABLESPACE STUDENT_DATA;
+
+	------------------------
+	-- PRIMARY KEY
+	------------------------
+	ALTER TABLE NOWE 
+		ADD CONSTRAINT PK_NOWE
+		PRIMARY KEY (NOWE_ID)
+		USING INDEX
+		PCTFREE 0
+		TABLESPACE STUDENT_INDEX;
+	
+	------------------------
+	-- SEQUENCE
+	------------------------		
+	DROP SEQUENCE SEQ_NOWE; 
+	
+	CREATE SEQUENCE SEQ_NOWE
+	INCREMENT BY 1 START WITH 1 MINVALUE 1;
+	
+	------------------------
+	-- TRIGGER
+	------------------------
+	CREATE OR REPLACE TRIGGER T_BI_NOWE
+	BEFORE INSERT ON NOWE
+	FOR EACH ROW
+	BEGIN
+		IF :NEW.NOWE_ID IS NULL THEN
+			SELECT SEQ_NOWE.NEXTVAL 
+				INTO :NEW.NOWE_ID FROM DUAL;
+		END IF;
+		--
+		DBMS_OUTPUT.PUT_LINE('Dodano nowy wiersz do NOWE - NOWE_ID='||:NEW.NOWE_ID);
+		--
+	END;
+	/ 
+	
+	------------------------
+	-- INDEX
+	------------------------	
+	CREATE INDEX IX_NOWE_TYP
+	ON NOWE (NOWE_TYP)
+	TABLESPACE STUDENT_INDEX;	 
+	
+---------------------------
+--  DDL create table
+---------------------------	
+create table OCENA (
+OCENA_ID			number(8) NOT NULL,	
+OCENA_STATUS		varchar2(40)
+)
+PCTFREE 12
+TABLESPACE STUDENT_DATA;
+
+	------------------------
+	-- PRIMARY KEY
+	------------------------
+	ALTER TABLE OCENA 
+		ADD CONSTRAINT PK_OCENA
+		PRIMARY KEY (OCENA_ID)
+		USING INDEX
+		PCTFREE 0
+		TABLESPACE STUDENT_INDEX;
+	
+	------------------------
+	-- SEQUENCE
+	------------------------		
+	DROP SEQUENCE SEQ_OCENA; 
+	
+	CREATE SEQUENCE SEQ_OCENA
+	INCREMENT BY 1 START WITH 1 MINVALUE 1;
+	
+	------------------------
+	-- TRIGGER
+	------------------------
+	CREATE OR REPLACE TRIGGER T_BI_OCENA
+	BEFORE INSERT ON OCENA
+	FOR EACH ROW
+	BEGIN
+		IF :NEW.OCENA_ID IS NULL THEN
+			SELECT SEQ_OCENA.NEXTVAL 
+				INTO :NEW.OCENA_ID FROM DUAL;
+		END IF;
+		--
+		DBMS_OUTPUT.PUT_LINE('Dodano nowy wiersz do OCENA - OCENA_ID='||:NEW.OCENA_ID);
+		--
+	END;
+	/ 
+	
+	------------------------
+	-- INDEX
+	------------------------	
+	CREATE INDEX IX_OCENA_STATUS
+	ON OCENA (OCENA_STATUS)
+	TABLESPACE STUDENT_INDEX;	 
+	
+---------------------------
+--  DDL create table
+---------------------------	
+create table DOSTEPNE (
+DOST_ID			number(8) NOT NULL,	
+DOST_ILOSC		varchar2(40),
+DOST_LOKALIZACJA		varchar2(40)
+)
+PCTFREE 12
+TABLESPACE STUDENT_DATA;
+
+	------------------------
+	-- PRIMARY KEY
+	------------------------
+	ALTER TABLE DOSTEPNE 
+		ADD CONSTRAINT PK_DOSTEPNE
+		PRIMARY KEY (DOST_ID)
+		USING INDEX
+		PCTFREE 0
+		TABLESPACE STUDENT_INDEX;
+	
+	------------------------
+	-- SEQUENCE
+	------------------------		
+	DROP SEQUENCE SEQ_DOSTEPNE; 
+	
+	CREATE SEQUENCE SEQ_DOSTEPNE
+	INCREMENT BY 1 START WITH 1 MINVALUE 1;
+	
+	------------------------
+	-- TRIGGER
+	------------------------
+	CREATE OR REPLACE TRIGGER T_BI_DOSTEPNE
+	BEFORE INSERT ON DOSTEPNE
+	FOR EACH ROW
+	BEGIN
+		IF :NEW.DOST_ID IS NULL THEN
+			SELECT SEQ_DOSTEPNE.NEXTVAL 
+				INTO :NEW.DOST_ID FROM DUAL;
+		END IF;
+		--
+		DBMS_OUTPUT.PUT_LINE('Dodano nowy wiersz do DOSTEPNE - DOST_ID='||:NEW.DOST_ID);
+		--
+	END;
+	/ 
+	
+	------------------------
+	-- INDEX
+	------------------------	
+	CREATE INDEX IX_DOST_LOKALIZACJA
+	ON DOSTEPNE (DOST_LOKALIZACJA)
+	TABLESPACE STUDENT_INDEX;
+	
+---------------------------
+--  DDL create table
+---------------------------	
+create table NIEDOSTEPNE (
+NIED_ID			number(8) NOT NULL,	
+NIED_TERMIN_DOST	varchar2(40)
+)
+PCTFREE 12
+TABLESPACE STUDENT_DATA;
+
+	------------------------
+	-- PRIMARY KEY
+	------------------------
+	ALTER TABLE NIEDOSTEPNE 
+		ADD CONSTRAINT PK_NIEDOSTEPNE
+		PRIMARY KEY (NIED_ID)
+		USING INDEX
+		PCTFREE 0
+		TABLESPACE STUDENT_INDEX;
+	
+	------------------------
+	-- SEQUENCE
+	------------------------		
+	DROP SEQUENCE SEQ_NIEDOSTEPNE; 
+	
+	CREATE SEQUENCE SEQ_NIEDOSTEPNE
+	INCREMENT BY 1 START WITH 1 MINVALUE 1;
+	
+	------------------------
+	-- TRIGGER
+	------------------------
+	CREATE OR REPLACE TRIGGER T_BI_NIEDOSTEPNE
+	BEFORE INSERT ON NIEDOSTEPNE
+	FOR EACH ROW
+	BEGIN
+		IF :NEW.NIED_ID IS NULL THEN
+			SELECT SEQ_NIEDOSTEPNE.NEXTVAL 
+				INTO :NEW.NIED_ID FROM DUAL;
+		END IF;
+		--
+		DBMS_OUTPUT.PUT_LINE('Dodano nowy wiersz do NIEDOSTEPNE - NIED_ID='||:NEW.NIED_ID);
+		--
+	END;
+	/ 
+	
+	------------------------
+	-- INDEX
+	------------------------	
+	CREATE INDEX IX_NIED_TERMIN_DOST
+	ON NIEDOSTEPNE (NIED_TERMIN_DOST)
+	TABLESPACE STUDENT_INDEX;
+
+---------------------------
+--  DDL create table
+---------------------------	
+create table NOST (
+NOST_ID		number(8) NOT NULL,	
+NOST_TYP	varchar2(40),
+OCENA_ID	number(8) NOT NULL	
+)
+PCTFREE 12
+TABLESPACE STUDENT_DATA;
+
+	------------------------
+	-- PRIMARY KEY
+	------------------------
+	ALTER TABLE NOST 
+		ADD CONSTRAINT PK_NOST
+		PRIMARY KEY (NOST_ID)
+		USING INDEX
+		PCTFREE 0
+		TABLESPACE STUDENT_INDEX;
+		
+	------------------------
+	--  FOREIGN Keys
+	------------------------
+	ALTER TABLE NOST
+		ADD CONSTRAINT FK1_NOST
+		FOREIGN KEY(OCENA_ID) 
+		REFERENCES OCENA(OCENA_ID) ENABLE;
+	
+	------------------------
+	-- SEQUENCE
+	------------------------		
+	DROP SEQUENCE SEQ_NOST; 
+	
+	CREATE SEQUENCE SEQ_NOST
+	INCREMENT BY 1 START WITH 1 MINVALUE 1;
+	
+	------------------------
+	-- TRIGGER
+	------------------------
+	CREATE OR REPLACE TRIGGER T_BI_NOST
+	BEFORE INSERT ON NOST
+	FOR EACH ROW
+	BEGIN
+		IF :NEW.NOST_ID IS NULL THEN
+			SELECT SEQ_NOST.NEXTVAL 
+				INTO :NEW.NOST_ID FROM DUAL;
+		END IF;
+		--
+		DBMS_OUTPUT.PUT_LINE('Dodano nowy wiersz do NOST - NOST_ID='||:NEW.NOST_ID);
+		--
+	END;
+	/ 
+	
+	------------------------
+	-- INDEX
+	------------------------	
+	CREATE INDEX IX_NOST_TYP
+	ON NOST (NOST_TYP)
+	TABLESPACE STUDENT_INDEX;
+	
+---------------------------
+--  DDL create table
+---------------------------	
+create table UZYWANE (
+UZYW_ID		number(8) NOT NULL,	
+UZYW_TYP	varchar2(40),
+OCENA_ID	number(8) NOT NULL	
+)
+PCTFREE 12
+TABLESPACE STUDENT_DATA;
+
+	------------------------
+	-- PRIMARY KEY
+	------------------------
+	ALTER TABLE UZYWANE 
+		ADD CONSTRAINT PK_UZYWANE
+		PRIMARY KEY (UZYW_ID)
+		USING INDEX
+		PCTFREE 0
+		TABLESPACE STUDENT_INDEX;
+		
+	------------------------
+	--  FOREIGN Keys
+	------------------------
+	ALTER TABLE UZYWANE
+		ADD CONSTRAINT FK1_UZYWANE
+		FOREIGN KEY(OCENA_ID) 
+		REFERENCES OCENA(OCENA_ID) ENABLE;
+	
+	------------------------
+	-- SEQUENCE
+	------------------------		
+	DROP SEQUENCE SEQ_UZYWANE; 
+	
+	CREATE SEQUENCE SEQ_UZYWANE
+	INCREMENT BY 1 START WITH 1 MINVALUE 1;
+	
+	------------------------
+	-- TRIGGER
+	------------------------
+	CREATE OR REPLACE TRIGGER T_BI_UZYWANE
+	BEFORE INSERT ON UZYWANE
+	FOR EACH ROW
+	BEGIN
+		IF :NEW.UZYW_ID IS NULL THEN
+			SELECT SEQ_UZYWANE.NEXTVAL 
+				INTO :NEW.UZYW_ID FROM DUAL;
+		END IF;
+		--
+		DBMS_OUTPUT.PUT_LINE('Dodano nowy wiersz do UZYWANE - UZYW_ID='||:NEW.UZYW_ID);
+		--
+	END;
+	/ 
+	
+	------------------------
+	-- INDEX
+	------------------------	
+	CREATE INDEX IX_UZYW_TYP
+	ON UZYWANE (UZYW_TYP)
+	TABLESPACE STUDENT_INDEX;
+	
+---------------------------
+--  DDL create table
+---------------------------	
+create table TYPY (
+TYPY_ID		number(8) NOT NULL,	
+ORY_ID		number(8) NOT NULL,	
+ZAM_ID		number(8) NOT NULL,	
+NOWE_ID 	number(8) NOT NULL,	
+NOST_ID		number(8) NOT NULL,	
+UZYW_ID		number(8) NOT NULL
+)
+PCTFREE 12
+TABLESPACE STUDENT_DATA;
+
+	------------------------
+	-- PRIMARY KEY
+	------------------------
+	ALTER TABLE TYPY 
+		ADD CONSTRAINT PK_TYPY
+		PRIMARY KEY (TYPY_ID)
+		USING INDEX
+		PCTFREE 0
+		TABLESPACE STUDENT_INDEX;
+	
+	------------------------
+	--  FOREIGN Keys
+	------------------------
+	ALTER TABLE TYPY
+		ADD CONSTRAINT FK1_TYPY
+		FOREIGN KEY(ORY_ID) 
+		REFERENCES ORYGINAL(ORY_ID) ENABLE;
+		
+	ALTER TABLE TYPY
+		ADD CONSTRAINT FK2_TYPY
+		FOREIGN KEY(ZAM_ID) 
+		REFERENCES ZAMIENNIK(ZAM_ID) ENABLE;
+	
+	ALTER TABLE TYPY
+		ADD CONSTRAINT FK3_TYPY
+		FOREIGN KEY(NOWE_ID) 
+		REFERENCES NOWE(NOWE_ID) ENABLE;
+		
+	ALTER TABLE TYPY
+		ADD CONSTRAINT FK4_TYPY
+		FOREIGN KEY(NOST_ID) 
+		REFERENCES NOST(NOST_ID) ENABLE;
+	
+	ALTER TABLE TYPY
+		ADD CONSTRAINT FK5_TYPY
+		FOREIGN KEY(UZYW_ID) 
+		REFERENCES UZYWANE(UZYW_ID) ENABLE;
+	------------------------
+	-- SEQUENCE
+	------------------------		
+	DROP SEQUENCE SEQ_TYPY; 
+	
+	CREATE SEQUENCE SEQ_TYPY
+	INCREMENT BY 1 START WITH 1 MINVALUE 1;
+	
+	------------------------
+	-- TRIGGER
+	------------------------
+	CREATE OR REPLACE TRIGGER T_BI_TYPY
+	BEFORE INSERT ON TYPY
+	FOR EACH ROW
+	BEGIN
+		IF :NEW.TYPY_ID IS NULL THEN
+			SELECT SEQ_TYPY.NEXTVAL 
+				INTO :NEW.TYPY_ID FROM DUAL;
+		END IF;
+		--
+		DBMS_OUTPUT.PUT_LINE('Dodano nowy wiersz do TYPY - TYPY_ID='||:NEW.TYPY_ID);
+		--
+	END;
+	/ 
+	
+---------------------------
+--  DDL create table
+---------------------------	
+create table STAN (
+STAN_ID		number(8) NOT NULL,	
+NOWE_ID 	number(8) NOT NULL,	
+NOST_ID		number(8) NOT NULL,	
+UZYW_ID		number(8) NOT NULL,
+NIED_ID		number(8) NOT NULL,
+DOST_ID			number(8) NOT NULL
+)
+PCTFREE 12
+TABLESPACE STUDENT_DATA;
+
+	------------------------
+	-- PRIMARY KEY
+	------------------------
+	ALTER TABLE STAN 
+		ADD CONSTRAINT PK_STAN
+		PRIMARY KEY (STAN_ID)
+		USING INDEX
+		PCTFREE 0
+		TABLESPACE STUDENT_INDEX;
+		
+	------------------------
+	--  FOREIGN Keys
+	------------------------
+	ALTER TABLE STAN
+		ADD CONSTRAINT FK1_STAN
+		FOREIGN KEY(NOWE_ID) 
+		REFERENCES NOWE(NOWE_ID) ENABLE;
+	
+	ALTER TABLE STAN
+		ADD CONSTRAINT FK2_STAN
+		FOREIGN KEY(NOST_ID) 
+		REFERENCES NOST(NOST_ID) ENABLE;
+		
+	ALTER TABLE STAN
+		ADD CONSTRAINT FK3_STAN
+		FOREIGN KEY(UZYW_ID) 
+		REFERENCES UZYWANE(UZYW_ID) ENABLE;
+		
+	ALTER TABLE STAN
+		ADD CONSTRAINT FK4_STAN
+		FOREIGN KEY(NIED_ID) 
+		REFERENCES NIEDOSTEPNE(NIED_ID) ENABLE;
+		
+	ALTER TABLE STAN
+		ADD CONSTRAINT FK5_STAN
+		FOREIGN KEY(DOST_ID) 
+		REFERENCES DOSTEPNE(DOST_ID) ENABLE;
+	
+	------------------------
+	-- SEQUENCE
+	------------------------		
+	DROP SEQUENCE SEQ_STAN; 
+	
+	CREATE SEQUENCE SEQ_STAN
+	INCREMENT BY 1 START WITH 1 MINVALUE 1;
+	
+	------------------------
+	-- TRIGGER
+	------------------------
+	CREATE OR REPLACE TRIGGER T_BI_STAN
+	BEFORE INSERT ON STAN
+	FOR EACH ROW
+	BEGIN
+		IF :NEW.STAN_ID IS NULL THEN
+			SELECT SEQ_STAN.NEXTVAL 
+				INTO :NEW.STAN_ID FROM DUAL;
+		END IF;
+		--
+		DBMS_OUTPUT.PUT_LINE('Dodano nowy wiersz do STAN - STAN_ID='||:NEW.STAN_ID);
+		--
+	END;
+	/ 
+	
+
+-------------------------------------
+----------- INSERTY MARKA -----------
+-------------------------------------
+
+insert into MARKA (MAR_NAZWA,MAR_KRAJ) values ('ALFA ROMEO','ITALIA');
+insert into MARKA (MAR_NAZWA,MAR_KRAJ) values ('AUDI','NIEMCY');
+insert into MARKA (MAR_NAZWA,MAR_KRAJ) values ('BMW','NIEMCY');
+insert into MARKA (MAR_NAZWA,MAR_KRAJ) values ('Chevrolet','USA');
+insert into MARKA (MAR_NAZWA,MAR_KRAJ) values ('Chrysler','USA');
+insert into MARKA (MAR_NAZWA,MAR_KRAJ) values ('CITROEN','FRANCJA');
+insert into MARKA (MAR_NAZWA,MAR_KRAJ) values ('DACIA','RUMUNIA');
+insert into MARKA (MAR_NAZWA,MAR_KRAJ) values ('FIAT','ITALIA');
+insert into MARKA (MAR_NAZWA,MAR_KRAJ) values ('FORD','USA');
+insert into MARKA (MAR_NAZWA,MAR_KRAJ) values ('HONDA','JAPONIA');
+insert into MARKA (MAR_NAZWA,MAR_KRAJ) values ('HYUNDAI','KOREA_PLD');
+insert into MARKA (MAR_NAZWA,MAR_KRAJ) values ('INFINITI','JAPONIA');
+insert into MARKA (MAR_NAZWA,MAR_KRAJ) values ('JAGUAR','WIELKA_BRYTANIA');
+insert into MARKA (MAR_NAZWA,MAR_KRAJ) values ('JEEP','USA');
+insert into MARKA (MAR_NAZWA,MAR_KRAJ) values ('KIA','KOREA_PLD');
+insert into MARKA (MAR_NAZWA,MAR_KRAJ) values ('LANCIA','ITALIA');
+insert into MARKA (MAR_NAZWA,MAR_KRAJ) values ('LAND ROVER','WIELKA_BRYTANIA');
+insert into MARKA (MAR_NAZWA,MAR_KRAJ) values ('LEXUS','JAPONIA');
+insert into MARKA (MAR_NAZWA,MAR_KRAJ) values ('MASERATI','ITALIA');
+insert into MARKA (MAR_NAZWA,MAR_KRAJ) values ('MAZDA','JAPONIA');
+insert into MARKA (MAR_NAZWA,MAR_KRAJ) values ('MERCEDES-BENZ','NIEMCY');
+insert into MARKA (MAR_NAZWA,MAR_KRAJ) values ('MINI','WIELKA_BRYTANIA');
+insert into MARKA (MAR_NAZWA,MAR_KRAJ) values ('MITSUBISHI','JAPONIA');
+insert into MARKA (MAR_NAZWA,MAR_KRAJ) values ('NISSAN','JAPONIA');
+insert into MARKA (MAR_NAZWA,MAR_KRAJ) values ('OPEL','NIEMCY');
+insert into MARKA (MAR_NAZWA,MAR_KRAJ) values ('PEUGEOT','FRANCJA');
+insert into MARKA (MAR_NAZWA,MAR_KRAJ) values ('PORSCHE','NIEMCY');
+insert into MARKA (MAR_NAZWA,MAR_KRAJ) values ('RENAULT','FRANCJA');
+insert into MARKA (MAR_NAZWA,MAR_KRAJ) values ('SEAT','HISZPANIA');
+insert into MARKA (MAR_NAZWA,MAR_KRAJ) values ('SAAB','SZWECJA');
+insert into MARKA (MAR_NAZWA,MAR_KRAJ) values ('SKODA','CZECHY');
+insert into MARKA (MAR_NAZWA,MAR_KRAJ) values ('SSANGYONG','KOREA_PLD');
+insert into MARKA (MAR_NAZWA,MAR_KRAJ) values ('SUBARU','JAPONIA');
+insert into MARKA (MAR_NAZWA,MAR_KRAJ) values ('SUZUKI','JAPONIA');
+insert into MARKA (MAR_NAZWA,MAR_KRAJ) values ('TOYOTA','JAPONIA');
+insert into MARKA (MAR_NAZWA,MAR_KRAJ) values ('VOLKSWAGEN','NIEMCY');
+insert into MARKA (MAR_NAZWA,MAR_KRAJ) values ('VOLVO','SZWECJA');
+
+
+-------------------------------------
+----------- INSERTY MODEL -----------
+-------------------------------------
+---ALFA-ROMEO---
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (1,'GULIA','CZERW_KRZYZ_I_WAZ');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (1,'GULIETTA','CZERW_KRZYZ_I_WAZ');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (1,'STELVIO','CZERW_KRZYZ_I_WAZ');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (1,'TONALE','CZERW_KRZYZ_I_WAZ');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (1,'QUADRIFOGLIO','CZERW_KRZYZ_I_WAZ');
+---AUDI---
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (2,'A1','4_PIERSCIENIE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (2,'A3','4_PIERSCIENIE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (2,'S3','4_PIERSCIENIE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (2,'RS3','4_PIERSCIENIE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (2,'A4','4_PIERSCIENIE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (2,'S4','4_PIERSCIENIE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (2,'RS4','4_PIERSCIENIE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (2,'A5','4_PIERSCIENIE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (2,'S5','4_PIERSCIENIE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (2,'A6','4_PIERSCIENIE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (2,'S6','4_PIERSCIENIE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (2,'RS6','4_PIERSCIENIE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (2,'A7','4_PIERSCIENIE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (2,'S7','4_PIERSCIENIE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (2,'RS7','4_PIERSCIENIE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (2,'A8','4_PIERSCIENIE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (2,'S8','4_PIERSCIENIE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (2,'Q2','4_PIERSCIENIE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (2,'Q3','4_PIERSCIENIE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (2,'RSQ3','4_PIERSCIENIE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (2,'Q5','4_PIERSCIENIE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (2,'SQ5','4_PIERSCIENIE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (2,'Q7','4_PIERSCIENIE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (2,'SQ7','4_PIERSCIENIE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (2,'Q8','4_PIERSCIENIE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (2,'SQ8','4_PIERSCIENIE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (2,'RSQ8','4_PIERSCIENIE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (2,'R8','4_PIERSCIENIE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (2,'E-TRON','4_PIERSCIENIE');
+---BMW---
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (3,'SERIA_1','BIAL_NIEB_SZACHOWNICA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (3,'SERIA_2','BIAL_NIEB_SZACHOWNICA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (3,'SERIA_3','BIAL_NIEB_SZACHOWNICA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (3,'SERIA_4','BIAL_NIEB_SZACHOWNICA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (3,'SERIA_5','BIAL_NIEB_SZACHOWNICA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (3,'SERIA_6','BIAL_NIEB_SZACHOWNICA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (3,'SERIA_7','BIAL_NIEB_SZACHOWNICA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (3,'SERIA_8','BIAL_NIEB_SZACHOWNICA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (3,'X1','BIAL_NIEB_SZACHOWNICA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (3,'X2','BIAL_NIEB_SZACHOWNICA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (3,'X3','BIAL_NIEB_SZACHOWNICA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (3,'X4','BIAL_NIEB_SZACHOWNICA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (3,'X5','BIAL_NIEB_SZACHOWNICA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (3,'X6','BIAL_NIEB_SZACHOWNICA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (3,'X7','BIAL_NIEB_SZACHOWNICA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (3,'Z','BIAL_NIEB_SZACHOWNICA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (3,'M1','BIAL_NIEB_SZACHOWNICA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (3,'M2','BIAL_NIEB_SZACHOWNICA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (3,'M3','BIAL_NIEB_SZACHOWNICA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (3,'M4','BIAL_NIEB_SZACHOWNICA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (3,'M5','BIAL_NIEB_SZACHOWNICA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (3,'M6','BIAL_NIEB_SZACHOWNICA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (3,'M7','BIAL_NIEB_SZACHOWNICA');
+---CHEVROLET---
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (4,'BLAZER','ZLOTY_KRZYZ');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (4,'BOLT_EV','ZLOTY_KRZYZ');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (4,'CAMARO','ZLOTY_KRZYZ');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (4,'CAMARO_ZL1','ZLOTY_KRZYZ');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (4,'COLORADO','ZLOTY_KRZYZ');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (4,'CORVETTE_STINGRAY','ZLOTY_KRZYZ');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (4,'CORVETTE_GRAND_SPORT','ZLOTY_KRZYZ');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (4,'CORVETTE_Z06','ZLOTY_KRZYZ');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (4,'CRUZE','ZLOTY_KRZYZ');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (4,'EQUINOX','ZLOTY_KRZYZ');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (4,'IMPALA','ZLOTY_KRZYZ');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (4,'MALIBU','ZLOTY_KRZYZ');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (4,'ALL-NEW SILVERADO HD','ZLOTY_KRZYZ');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (4,'SILVERADO','ZLOTY_KRZYZ');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (4,'SILVERADO HD','ZLOTY_KRZYZ');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (4,'SONIC','ZLOTY_KRZYZ');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (4,'SPARK','ZLOTY_KRZYZ');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (4,'SUBURBAN','ZLOTY_KRZYZ');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (4,'TAHOE','ZLOTY_KRZYZ');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (4,'TRAVERSE','ZLOTY_KRZYZ');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (4,'TRAX','ZLOTY_KRZYZ');
+---CHRYSLER---
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (5,'PACIFICA','SKRZYDLA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (5,'PACIFICA_HYBRID','SKRZYDLA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (5,'300','SKRZYDLA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (5,'VOYAGER','SKRZYDLA');
+
+---CITROEN---
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (6,'BERLINGO','CHOINKA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (6,'BERLINGO_VAN','CHOINKA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (6,'C1','CHOINKA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (6,'C3','CHOINKA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (6,'C3_AIRCROSS','CHOINKA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (6,'C4_CACTUS','CHOINKA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (6,'C4_SPACETOURER','CHOINKA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (6,'GRAND_C4_SPACETOURER','CHOINKA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (6,'C5_AIRCROSS','CHOINKA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (6,'C5_AIRCROSS_HYBRID','CHOINKA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (6,'C_ELYSEE','CHOINKA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (6,'JUMPER','CHOINKA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (6,'JUMPY','CHOINKA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (6,'SPACETOURER','CHOINKA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (6,'SPACETOURER_BUSINESS_LOUNGE','CHOINKA');
+---DACIA---
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (7,'DOKKER','OTWIERACZ_DO_PIWA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (7,'DOKKER_VAN','OTWIERACZ_DO_PIWA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (7,'DUSTER','OTWIERACZ_DO_PIWA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (7,'LODGY','OTWIERACZ_DO_PIWA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (7,'LOGAN','OTWIERACZ_DO_PIWA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (7,'LOGAN_MCV','OTWIERACZ_DO_PIWA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (7,'LOGAN_MCV_STEPWAY','OTWIERACZ_DO_PIWA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (7,'SANDERO','OTWIERACZ_DO_PIWA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (7,'SANDERO_STEPWAY','OTWIERACZ_DO_PIWA');
+---FIAT---
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (8,'500','KOLO_Z_CZERWONYM_TLEM');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (8,'500C','KOLO_Z_CZERWONYM_TLEM');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (8,'500L','KOLO_Z_CZERWONYM_TLEM');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (8,'500X','KOLO_Z_CZERWONYM_TLEM');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (8,'PANDA','KOLO_Z_CZERWONYM_TLEM');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (8,'TIPO','KOLO_Z_CZERWONYM_TLEM');
+---FORD---
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (9,'C_MAX','NIEBIESKA_ELIPSA_Z_RAMKA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (9,'ECOSPORT','NIEBIESKA_ELIPSA_Z_RAMKA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (9,'EDGE','NIEBIESKA_ELIPSA_Z_RAMKA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (9,'FIESTA','NIEBIESKA_ELIPSA_Z_RAMKA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (9,'FOCUS','NIEBIESKA_ELIPSA_Z_RAMKA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (9,'GALAXY','NIEBIESKA_ELIPSA_Z_RAMKA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (9,'KA+','NIEBIESKA_ELIPSA_Z_RAMKA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (9,'KUGA','NIEBIESKA_ELIPSA_Z_RAMKA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (9,'MONDEO','NIEBIESKA_ELIPSA_Z_RAMKA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (9,'MUSTANG','BIEGNACY_KON');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (9,'MUSTANG_MACH_E','BIEGNACY_KON'); 
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (9,'PUMA','NIEBIESKA_ELIPSA_Z_RAMKA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (9,'RANGER','NIEBIESKA_ELIPSA_Z_RAMKA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (9,'RANGER_RAPTOR','NIEBIESKA_ELIPSA_Z_RAMKA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (9,'S_MAX','NIEBIESKA_ELIPSA_Z_RAMKA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (9,'TOURNEO_CONNECT','NIEBIESKA_ELIPSA_Z_RAMKA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (9,'TOURNEO_CUSTOM','NIEBIESKA_ELIPSA_Z_RAMKA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (9,'TOURNEO_COURIER','NIEBIESKA_ELIPSA_Z_RAMKA');
+---HONDA---
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (10,'CIVIC_4D','LITERA_H_W_RAMCE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (10,'CIVIC_5D','LITERA_H_W_RAMCE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (10,'CIVIC_TYPE_R','LITERA_H_W_RAMCE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (10,'CR_V_HYBRID','LITERA_H_W_RAMCE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (10,'CR_V','LITERA_H_W_RAMCE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (10,'HONDA_E','LITERA_H_W_RAMCE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (10,'HR_V ','LITERA_H_W_RAMCE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (10,'JAZZ','LITERA_H_W_RAMCE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (10,'NSX','LITERA_H_W_RAMCE');
+---HYUNDAI---
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (11,'I10','LITERA_H_BOKIEM_W_RAMCE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (11,'I20','LITERA_H_BOKIEM_W_RAMCE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (11,'I20_ACTIVE','LITERA_H_BOKIEM_W_RAMCE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (11,'IX20','LITERA_H_BOKIEM_W_RAMCE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (11,'I30','LITERA_H_BOKIEM_W_RAMCE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (11,'I30_N','LITERA_H_BOKIEM_W_RAMCE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (11,'ELANTRA','LITERA_H_BOKIEM_W_RAMCE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (11,'IONIQ_ELECTRIC','LITERA_H_BOKIEM_W_RAMCE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (11,'IONIQ_HYBRID','LITERA_H_BOKIEM_W_RAMCE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (11,'IONIQ_PLUG IN','LITERA_H_BOKIEM_W_RAMCE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (11,'KONA','LITERA_H_BOKIEM_W_RAMCE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (11,'KONA_ELECTRIC','LITERA_H_BOKIEM_W_RAMCE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (11,'KONA_HYBRID','LITERA_H_BOKIEM_W_RAMCE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (11,'NEXO','LITERA_H_BOKIEM_W_RAMCE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (11,'SANTA_FE','LITERA_H_BOKIEM_W_RAMCE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (11,'TUCSON','LITERA_H_BOKIEM_W_RAMCE');
+---INFINITI---
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (12,'Q30','PACK_MAN');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (12,'QX30','PACK_MAN');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (12,'Q50_2.0T','PACK_MAN');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (12,'Q50_HYBRID','PACK_MAN');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (12,'Q60','PACK_MAN');
+---JAGUAR---
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (13,'JAGUAR_F_PACE','WIELKA BRYTANIA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (13,'JAGUAR_E_PACE','WIELKA BRYTANIA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (13,'JAGUAR_I_PACE','WIELKA BRYTANIA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (13,'JAGUAR_F_TYPE','WIELKA BRYTANIA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (13,'JAGUAR_XE','WIELKA BRYTANIA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (13,'JAGUAR_XF','WIELKA BRYTANIA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (13,'JAGUAR_XJ','WIELKA BRYTANIA');
+---JEEP---
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (14,'RENEGADE','NAPIS_JEEP');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (14,'COMPASS','NAPIS_JEEP');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (14,'CHEROKEE','NAPIS_JEEP');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (14,'GRAND_CHEROKEE','NAPIS_JEEP');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (14,'WRANGLER','NAPIS_JEEP');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (14,'WRANGLER_UNLIMITED','NAPIS_JEEP');
+---KIA---
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (15,'CEED','ELIPSA_Z_NAPISEM_KIA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (15,'CEED_GT','ELIPSA_Z_NAPISEM_KIA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (15,'NIRO_HYBRID','ELIPSA_Z_NAPISEM_KIA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (15,'NIRO_PHEV','ELIPSA_Z_NAPISEM_KIA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (15,'OPTIMA','ELIPSA_Z_NAPISEM_KIA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (15,'OPTIMA_GT','ELIPSA_Z_NAPISEM_KIA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (15,'PICANTO','ELIPSA_Z_NAPISEM_KIA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (15,'PROCEED','ELIPSA_Z_NAPISEM_KIA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (15,'RIO','ELIPSA_Z_NAPISEM_KIA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (15,'SORENTO','ELIPSA_Z_NAPISEM_KIA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (15,'SPORTAGE','ELIPSA_Z_NAPISEM_KIA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (15,'STINGER','ELIPSA_Z_NAPISEM_KIA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (15,'STONIC','ELIPSA_Z_NAPISEM_KIA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (15,'XCEED','ELIPSA_Z_NAPISEM_KIA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (15,'XCEED_PHEV','ELIPSA_Z_NAPISEM_KIA');
+---LANCIA---
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (16,'DELTA','TARCZA_Z_NIEBIESKIM_TLEM');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (16,'KAPPA','TARCZA_Z_NIEBIESKIM_TLEM');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (16,'LYBRA','TARCZA_Z_NIEBIESKIM_TLEM');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (16,'MUSA','TARCZA_Z_NIEBIESKIM_TLEM');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (16,'PHEDRA','TARCZA_Z_NIEBIESKIM_TLEM');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (16,'THEMA','TARCZA_Z_NIEBIESKIM_TLEM');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (16,'THESIS','TARCZA_Z_NIEBIESKIM_TLEM');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (16,'VOYAGER','TARCZA_Z_NIEBIESKIM_TLEM');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (16,'YPSILON','TARCZA_Z_NIEBIESKIM_TLEM');
+---LAND ROVER---
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (17,'DEFENDER','ELIPSA_Z_ZIELONYM_TLEM');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (17,'DISCOVERY','ELIPSA_Z_ZIELONYM_TLEM');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (17,'DISCOVERY_SPORT','ELIPSA_Z_ZIELONYM_TLEM');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (17,'RANGE_ROVER','ELIPSA_Z_ZIELONYM_TLEM');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (17,'RANGE_ROVER_EVOQUE','ELIPSA_Z_ZIELONYM_TLEM');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (17,'RANGE_ROVER_SPORT','ELIPSA_Z_ZIELONYM_TLEM');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (17,'RANGE_ROVER_VELAR','ELIPSA_Z_ZIELONYM_TLEM');
+---LEXUS---
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (18,'CT','KOLO_Z_LITERA_L');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (18,'ES','KOLO_Z_LITERA_L');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (18,'IS','KOLO_Z_LITERA_L');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (18,'LC','KOLO_Z_LITERA_L');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (18,'LS','KOLO_Z_LITERA_L');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (18,'LX','KOLO_Z_LITERA_L');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (18,'UX','KOLO_Z_LITERA_L');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (18,'NX','KOLO_Z_LITERA_L');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (18,'RC','KOLO_Z_LITERA_L');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (18,'RC_F','KOLO_Z_LITERA_L');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (18,'RX','KOLO_Z_LITERA_L');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (18,'RX_L','KOLO_Z_LITERA_L');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (18,'UX_300E','KOLO_Z_LITERA_L');
+---MASERATI---
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (19,'LEVANTE','TROJZAB');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (19,'QUATTROPORTE','TROJZAB');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (19,'GHIBLI','TROJZAB');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (19,'GRAN_CABRIO_RANGE','TROJZAB');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (19,'GRANTURISMO_RANGE','TROJZAB');
+---MAZDA---
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (20,'2','SKRZYDLA_W_KOLE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (20,'3','SKRZYDLA_W_KOLE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (20,'CX_3','SKRZYDLA_W_KOLE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (20,'CX_30','SKRZYDLA_W_KOLE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (20,'CX_5','SKRZYDLA_W_KOLE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (20,'MX_5','SKRZYDLA_W_KOLE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (20,'MX_30','SKRZYDLA_W_KOLE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (20,'6','SKRZYDLA_W_KOLE');
+---MERCEDES-BENZ---
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (21,'AMG_GT','GWIAZDA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (21,'GLB','GWIAZDA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (21,'GLC','GWIAZDA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (21,'GLE','GWIAZDA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (21,'GLS','GWIAZDA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (21,'KLASA_A','GWIAZDA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (21,'KLASA_B','GWIAZDA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (21,'KLASA_C','GWIAZDA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (21,'KLASA_CLA','GWIAZDA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (21,'KLASA_CLS','GWIAZDA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (21,'KLASA_E','GWIAZDA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (21,'KLASA_G','GWIAZDA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (21,'KLASA_S','GWIAZDA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (21,'KLASA_V','GWIAZDA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (21,'KLASA_X','GWIAZDA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (21,'SL','GWIAZDA');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (21,'SLC','GWIAZDA');
+---MINI---
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (22,'CLUBMAN','KOLO_ZE_SKRZYDLAMI');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (22,'COUNTRYMAN','KOLO_ZE_SKRZYDLAMI');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (22,'JOHN_COOPER_WORKS','KOLO_ZE_SKRZYDLAMI');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (22,'MINI','KOLO_ZE_SKRZYDLAMI');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (22,'MINI_ELECTRIC','KOLO_ZE_SKRZYDLAMI');
+---MITSUBISHI---
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (23,'ASX','CZERWONY_WIATRAK');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (23,'ECLIPSE_CROSS','CZERWONY_WIATRAK');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (23,'L200','CZERWONY_WIATRAK');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (23,'OUTLANDER','CZERWONY_WIATRAK');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (23,'OUTLANDER_PHEV','CZERWONY_WIATRAK');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (23,'PAJERO','CZERWONY_WIATRAK');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (23,'SPACE_STAR','CZERWONY_WIATRAK');
+---NISSAN---
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (24,'GTR','NAPIS_NISSAN_W_KOLE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (24,'JUKE','NAPIS_NISSAN_W_KOLE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (24,'E_NV200_EVALIA','NAPIS_NISSAN_W_KOLE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (24,'LEAF','NAPIS_NISSAN_W_KOLE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (24,'MICRA','NAPIS_NISSAN_W_KOLE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (24,'NAVARA','NAPIS_NISSAN_W_KOLE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (24,'QASHQAI','NAPIS_NISSAN_W_KOLE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (24,'X_TRAIL','NAPIS_NISSAN_W_KOLE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (24,'370Z','NAPIS_NISSAN_W_KOLE');
+---OPEL---
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (25,'ASTRA','PIORUN_W_KOLE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (25,'ASTRA_SPORTS_TOURER','PIORUN_W_KOLE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (25,'COMBO','PIORUN_W_KOLE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (25,'CORSA','PIORUN_W_KOLE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (25,'CORSA_E','PIORUN_W_KOLE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (25,'CROSSLAND_X','PIORUN_W_KOLE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (25,'GRANDLAND_X','PIORUN_W_KOLE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (25,'GRANDLAND_X_HYBRID','PIORUN_W_KOLE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (25,'INSIGNIA_COUNTRY_TOURER','PIORUN_W_KOLE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (25,'INSIGNIA_GRAND_SPORT','PIORUN_W_KOLE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (25,'INSIGNIA_GSI','PIORUN_W_KOLE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (25,'INSIGNIA_SPORTS_TOURER','PIORUN_W_KOLE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (25,'ZAFIRA_LIFE','PIORUN_W_KOLE');
+---PEUGEOT---
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (26,'208','LEW');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (26,'E_208','LEW');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (26,'2008','LEW');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (26,'E_2008','LEW');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (26,'308','LEW');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (26,'308_GTI','LEW');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (26,'308_SW','LEW');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (26,'3008','LEW');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (26,'3008_HYBRID','LEW');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (26,'508','LEW');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (26,'508_HYBRID','LEW');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (26,'508_SW','LEW');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (26,'508_SW_HYBRID','LEW');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (26,'5008','LEW');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (26,'BOXER_KOMBI','LEW');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (26,'EXPERT_KOMBI','LEW');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (26,'EXPERT_FURGON','LEW');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (26,'PARTNER_FURGON','LEW');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (26,'RIFTER','LEW');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (26,'TRAVELLER','LEW');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (26,'PEUGEOT','LEW');
+---PORSCHE---
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (27,'718_BOXSTER','TARCZA_Z_CZARNYM_KONIEM');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (27,'718_BOXSTER_S','TARCZA_Z_CZARNYM_KONIEM');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (27,'718_CAYMAN','TARCZA_Z_CZARNYM_KONIEM');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (27,'718_GTS','TARCZA_Z_CZARNYM_KONIEM');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (27,'718_SPYDER','TARCZA_Z_CZARNYM_KONIEM');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (27,'718_T','TARCZA_Z_CZARNYM_KONIEM');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (27,'911_CARRERA','TARCZA_Z_CZARNYM_KONIEM');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (27,'CAYENNE','TARCZA_Z_CZARNYM_KONIEM');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (27,'MACAN','TARCZA_Z_CZARNYM_KONIEM');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (27,'TAYCAN','TARCZA_Z_CZARNYM_KONIEM');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (27,'PANAMERA_E_HYBRID','TARCZA_Z_CZARNYM_KONIEM');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (27,'PANAMERA_GTS','TARCZA_Z_CZARNYM_KONIEM');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (27,'PANAMERA_TURBO','TARCZA_Z_CZARNYM_KONIEM');
+---RENAULT---
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (28,'CLIO','PODNOSNIK');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (28,'CLIO_GRANTOUR','PODNOSNIK');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (28,'CAPTUR','PODNOSNIK');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (28,'ESPACE','PODNOSNIK');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (28,'KADJAR','PODNOSNIK');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (28,'KANGOO','PODNOSNIK');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (28,'KOLEOS','PODNOSNIK');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (28,'MEGANE','PODNOSNIK');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (28,'MEGANE_GRANDCOUPE','PODNOSNIK');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (28,'MEGANE_GRANDTOUR','PODNOSNIK');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (28,'MEGANE_RS','PODNOSNIK');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (28,'SCENIC','PODNOSNIK');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (28,'GRAND_SCENIC','PODNOSNIK');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (28,'TALISMAN','PODNOSNIK');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (28,'TALISMAN_GRANDTOUR','PODNOSNIK');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (28,'TRAFIC','PODNOSNIK');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (28,'TRAFIC_SPACECLASS','PODNOSNIK');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (28,'ZOE','PODNOSNIK');
+
+---SEAT---
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (29,'ALHAMBRA','LITERA_S');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (29,'ARONA','LITERA_S');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (29,'ATECA','LITERA_S');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (29,'IBIZA','LITERA_S');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (29,'LEON','LITERA_S');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (29,'LEON_SPORTSTOURER','LITERA_S');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (29,'TARRACO','LITERA_S');
+
+---SAAB---
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (30,'9_3','GRYF_W_KORONIE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (30,'9_5','GRYF_W_KORONIE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (30,'9_7X','GRYF_W_KORONIE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (30,'90','GRYF_W_KORONIE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (30,'900','GRYF_W_KORONIE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (30,'9000','GRYF_W_KORONIE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (30,'99','GRYF_W_KORONIE');
+---SKODA---
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (31,'CITIGOE','ZIELONA_STRZALA_W_KOLE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (31,'FABIA','ZIELONA_STRZALA_W_KOLE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (31,'KAMIQ','ZIELONA_STRZALA_W_KOLE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (31,'KAROQ','ZIELONA_STRZALA_W_KOLE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (31,'KODIAQ','ZIELONA_STRZALA_W_KOLE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (31,'OCTAVIA','ZIELONA_STRZALA_W_KOLE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (31,'SCALA','ZIELONA_STRZALA_W_KOLE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (31,'SUPERB','ZIELONA_STRZALA_W_KOLE');
+---SSANGYONG---
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (32,'KORANDO','SKRZYDLA_W_KOLO');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (32,'MUSSO','SKRZYDLA_W_KOLO');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (32,'REXTON','SKRZYDLA_W_KOLO');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (32,'TIVOLI','SKRZYDLA_W_KOLO');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (32,'TIVOLI_ACTIVE','SKRZYDLA_W_KOLO');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (32,'XLV','SKRZYDLA_W_KOLO');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (32,'XLV_ACTIVE','SKRZYDLA_W_KOLO');
+---SUBARU---
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (33,'E_BOXER','GWIAZDY_NA_NIEBIESKIM_TLE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (33,'FORESTER','GWIAZDY_NA_NIEBIESKIM_TLE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (33,'IMPREZA','GWIAZDY_NA_NIEBIESKIM_TLE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (33,'OUTBACK','GWIAZDY_NA_NIEBIESKIM_TLE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (33,'XV','GWIAZDY_NA_NIEBIESKIM_TLE');
+---SUZUKI---
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (34,'BALENO','CZERWONA_LITERA_S');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (34,'CELERIO','CZERWONA_LITERA_S');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (34,'IGNIS','CZERWONA_LITERA_S');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (34,'JIMNY','CZERWONA_LITERA_S');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (34,'SWIFT','CZERWONA_LITERA_S');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (34,'SWIFT_SPORT','CZERWONA_LITERA_S');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (34,'SX4_S_CROSS','CZERWONA_LITERA_S');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (34,'VITARA','CZERWONA_LITERA_S');
+---TOYOTA---
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (35,'AYGO','KOLO_Z_LITERA_T');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (35,'CAMRY','KOLO_Z_LITERA_T');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (35,'C_HR','KOLO_Z_LITERA_T');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (35,'C_HR_HYBRID','KOLO_Z_LITERA_T');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (35,'COROLLA','KOLO_Z_LITERA_T');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (35,'COROLLA_TS','KOLO_Z_LITERA_T');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (35,'GT86','KOLO_Z_LITERA_T');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (35,'GR_SUPRA','KOLO_Z_LITERA_T');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (35,'HILUX','KOLO_Z_LITERA_T');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (35,'LAND_CRUISER','KOLO_Z_LITERA_T');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (35,'MIRAI','KOLO_Z_LITERA_T');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (35,'RAV4','KOLO_Z_LITERA_T');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (35,'PRIUS+','KOLO_Z_LITERA_T');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (35,'PRIUS_PLUG_IN','KOLO_Z_LITERA_T');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (35,'PROACE','KOLO_Z_LITERA_T');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (35,'PROACE_CITY','KOLO_Z_LITERA_T');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (35,'PROACE_CITY_VERSO','KOLO_Z_LITERA_T');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (35,'PROACE_VERSO','KOLO_Z_LITERA_T');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (35,'YARIS','KOLO_Z_LITERA_T');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (35,'YARIS_GRMN','KOLO_Z_LITERA_T');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (35,'YARIS_HYBRID','KOLO_Z_LITERA_T');
+---VOLKSWAGEN---
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (36,'ARTEON','KOLO_Z_PODWOJNA_LITERA_V');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (36,'E-GOLF','KOLO_Z_PODWOJNA_LITERA_V');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (36,'GOLF','KOLO_Z_PODWOJNA_LITERA_V');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (36,'GOLF_SPORTSVAN','KOLO_Z_PODWOJNA_LITERA_V');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (36,'GOLF_VARIANT','KOLO_Z_PODWOJNA_LITERA_V');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (36,'ID.3','KOLO_Z_PODWOJNA_LITERA_V');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (36,'PASSAT','KOLO_Z_PODWOJNA_LITERA_V');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (36,'PASSAT_VARIANT','KOLO_Z_PODWOJNA_LITERA_V');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (36,'POLO','KOLO_Z_PODWOJNA_LITERA_V');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (36,'SHARAN','KOLO_Z_PODWOJNA_LITERA_V');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (36,'T_CROSS','KOLO_Z_PODWOJNA_LITERA_V');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (36,'T-ROC','KOLO_Z_PODWOJNA_LITERA_V');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (36,'TIGUAN','KOLO_Z_PODWOJNA_LITERA_V');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (36,'TIGUAN_ALLSPACE','KOLO_Z_PODWOJNA_LITERA_V');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (36,'TOUAREG','KOLO_Z_PODWOJNA_LITERA_V');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (36,'TOURAN','KOLO_Z_PODWOJNA_LITERA_V');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (36,'E-UP!','KOLO_Z_PODWOJNA_LITERA_V');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (36,'UP!','KOLO_Z_PODWOJNA_LITERA_V');
+---VOLVO---
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (37,'S60','KOLO_ZE_STRZALA_W_GORE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (37,'S90','KOLO_ZE_STRZALA_W_GORE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (37,'V60','KOLO_ZE_STRZALA_W_GORE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (37,'V60_CROSS_COUNTRY','KOLO_ZE_STRZALA_W_GORE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (37,'V90','KOLO_ZE_STRZALA_W_GORE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (37,'V90_CROSS_COUNTRY','KOLO_ZE_STRZALA_W_GORE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (37,'XC60','KOLO_ZE_STRZALA_W_GORE');
+insert into MODEL (MAR_ID,MOD_NAZWA,MOD_LOGO) values (37,'XC90','KOLO_ZE_STRZALA_W_GORE');
+
+
+---GENERATORY---
+---ORYGINAL---
+
+create or replace procedure ORY_insert(ile IN number )
+IS
+    licznik number(2);
+BEGIN
+    licznik := 1;
+    WHILE licznik < ile+1
+    LOOP
+        insert into ORYGINAL (ORY_NAZWA,ORY_PRODUCENT,ORY_TYP,ORY_ROK) 
+		values ('KLOCKI_HAMULCOWE'||licznik,'FIAT','UKLAD HAMULCOWY','200'||licznik);
+        licznik := licznik + 1;
+    END LOOP;
+END;
+/
+
+BEGIN 
+ORY_insert(9);  
+END;
+/
+
+create or replace procedure ORYG_insert(ile IN number )
+IS
+    licznik number(2);
+BEGIN
+    licznik := 10;
+    WHILE licznik < ile+1
+    LOOP
+        insert into ORYGINAL (ORY_NAZWA,ORY_PRODUCENT,ORY_TYP,ORY_ROK) 
+		values ('KLOCKI_HAMULCOWE'||licznik,'FIAT','UKLAD HAMULCOWY','19'||licznik);
+        licznik := licznik + 1;
+    END LOOP;
+END;
+/
+
+BEGIN 
+ORYG_insert(37);  
+END;
+/
+
+create or replace procedure ORY2_insert(ile IN number )
+IS
+    licznik number(2);
+BEGIN
+    licznik := 1;
+    WHILE licznik < ile+1
+    LOOP
+        insert into ORYGINAL (ORY_NAZWA,ORY_PRODUCENT,ORY_TYP,ORY_ROK) 
+		values ('KATALIZATOR'||licznik,'MASERATI','UKLAD WYDECHOWY','200'||licznik);
+        licznik := licznik + 1;
+    END LOOP;
+END;
+/
+
+BEGIN 
+ORY2_insert(9);  
+END;
+/
+
+create or replace procedure ORYG2_insert(ile IN number )
+IS
+    licznik number(2);
+BEGIN
+    licznik := 10;
+    WHILE licznik < ile+1
+    LOOP
+        insert into ORYGINAL (ORY_NAZWA,ORY_PRODUCENT,ORY_TYP,ORY_ROK) 
+		values ('KATALIZATOR'||licznik,'MASERATI','UKLAD WYDECHOWY','19'||licznik);
+        licznik := licznik + 1;
+    END LOOP;
+END;
+/
+
+BEGIN 
+ORYG2_insert(37);  
+END;
+/
+
+
+---GENERATORY---
+---ZAMIENNIK---
+
+create or replace procedure ZAM_insert(ile IN number )
+IS
+    licznik number(2);
+BEGIN
+    licznik := 1;
+    WHILE licznik < ile+1
+    LOOP
+        insert into ZAMIENNIK (ZAM_NAZWA,ZAM_PRODUCENT,ZAM_TYP,ZAM_MODELE,ZAM_ROK,ZAM_NR_KAT) 
+		values ('KLOCKI HAMULCOWE'||licznik,'BOSCH','UKLAD HAMULCOWY','MUSTANG,GT','200'||licznik,'HAM/'||licznik||'267'||licznik||'/KLO');
+        licznik := licznik + 1;
+    END LOOP;
+END;
+/
+
+BEGIN 
+ZAM_insert(9);  
+END;
+/
+
+
+create or replace procedure ZAMI_insert(ile IN number )
+IS
+    licznik number(2);
+BEGIN
+    licznik := 10;
+    WHILE licznik < ile+1
+    LOOP
+        insert into ZAMIENNIK (ZAM_NAZWA,ZAM_PRODUCENT,ZAM_TYP,ZAM_MODELE,ZAM_ROK,ZAM_NR_KAT) 
+		values ('KLOCKI HAMULCOWE'||licznik,'BOSCH','UKLAD HAMULCOWY','MUSTANG,GT','19'||licznik,'HAM/'||licznik||'267'||licznik||'/KLO');
+        licznik := licznik + 1;
+    END LOOP;
+END;
+/
+
+BEGIN 
+ZAMI_insert(37);  
+END;
+/
+
+create or replace procedure ZAM2_insert(ile IN number )
+IS
+    licznik number(2);
+BEGIN
+    licznik := 1;
+    WHILE licznik < ile+1
+    LOOP
+        insert into ZAMIENNIK (ZAM_NAZWA,ZAM_PRODUCENT,ZAM_TYP,ZAM_MODELE,ZAM_ROK,ZAM_NR_KAT)
+		values ('KATALIZATOR'||licznik,'MORRETI','UKLAD WYDECHOWY','GHIBLI,GRANTURISMO','200'||licznik,'WYD/'||licznik||'890'||licznik||'/KAT');
+        licznik := licznik + 1;
+    END LOOP;
+END;
+/
+
+BEGIN 
+ZAM2_insert(9);  
+END;
+/
+
+
+create or replace procedure ZAMI2_insert(ile IN number )
+IS
+    licznik number(2);
+BEGIN
+    licznik := 10;
+    WHILE licznik < ile+1
+    LOOP
+        insert into ZAMIENNIK (ZAM_NAZWA,ZAM_PRODUCENT,ZAM_TYP,ZAM_MODELE,ZAM_ROK,ZAM_NR_KAT) 
+		values ('KATALIZATOR'||licznik,'MORRETI','UKLAD WYDECHOWY','GHIBLI,GRANTURISMO','19'||licznik,'WYD/'||licznik||'890'||licznik||'/KAT');
+        licznik := licznik + 1;
+    END LOOP;
+END;
+/
+
+BEGIN 
+ZAMI2_insert(37);  
+END;
+/
+
+
+insert into CZESCI (MOD_ID,ORY_ID,CZES_NAZWA,CZES_RODZAJ) values (1,1,'KLOCKI HAMULCOWE','UKLAD HAMULCOWY');
+
+insert into CZESCI (MOD_ID,ORY_ID,CZES_NAZWA,CZES_RODZAJ) values (1,1,'KATALIZATOR','UKLAD WYDECHOWY');
+
+ 
+insert into WERSJA(WER_CENA,WER_NAZWA,WER_TYP,WER_ROK) values (100000,'GT500','COUPE','1965-1967');
+
+insert into WERSJA (WER_CENA,WER_NAZWA,WER_TYP,WER_ROK) values (50000,'SPORT','COUPE','2008-2011');
+
+insert into WERSJA(WER_CENA,WER_NAZWA,WER_TYP,WER_ROK) values (20000,'FASTBACK','SEDAN','1965-1967');
+
+	
+ALTER TABLE MARKA NOLOGGING;
+ALTER TABLE MODEL NOLOGGING;
+ALTER TABLE ORYGINAL NOLOGGING;
+ALTER TABLE ZAMIENNIK NOLOGGING;
+ALTER TABLE CZESCI NOLOGGING;
+ALTER TABLE WERSJA NOLOGGING;
+ALTER TABLE MODE_WERS NOLOGGING;
+ALTER TABLE WERS_CZES NOLOGGING;
+ALTER TABLE CZES_ZAM NOLOGGING;
+ALTER TABLE NOWE NOLOGGING;
+ALTER TABLE NOST NOLOGGING;
+ALTER TABLE UZYWANE NOLOGGING;
+ALTER TABLE DOSTEPNE NOLOGGING;
+ALTER TABLE NIEDOSTEPNE NOLOGGING;
+ALTER TABLE TYPY NOLOGGING;
+ALTER TABLE STAN NOLOGGING;
+
+------------------
+--SELECTY
+------------------
+COLUMN MAR_ID Heading'ID' FORMAT 9999 
+COLUMN MAR_NAZWA Heading'MARKA' FORMAT A15
+COLUMN MAR_KRAJ Heading'KRAJ_PRODUCENTA' FORMAT A15
+--
+SELECT * FROM MARKA;
+------
+------
+COLUMN MAR_ID Heading'MARKA_ID' FORMAT 9999 
+COLUMN MOD_ID Heading'MODEL_ID' FORMAT 9999 
+COLUMN MOD_NAZWA Heading'MODEL' FORMAT A30
+COLUMN MOD_LOGO Heading'LOGO' FORMAT A30
+--
+SELECT * FROM MODEL;
+------
+SELECT * FROM MODEL WHERE MOD_NAZWA LIKE '%RS%'; 
+------
+------
+COLUMN ORY_ID Heading'ORY_ID' FORMAT 9999 
+COLUMN ORY_NAZWA Heading'NAZWA' FORMAT A30
+COLUMN ORY_PRODUCENT Heading'PRODUCENT' FORMAT A30
+COLUMN ORY_TYP Heading'TYP_CZESCI' FORMAT A30
+COLUMN ORY_ROK Heading'ROK_PRODUKCJI' FORMAT A13
+--
+SELECT * FROM ORYGINAL WHERE ORY_NAZWA LIKE 'KATALIZATOR%';
+------
+------
+COLUMN ZAM_ID Heading'ZAM_ID' FORMAT 9999 
+COLUMN ZAM_NAZWA Heading'NAZWA' FORMAT A30
+COLUMN ZAM_PRODUCENT Heading'PRODUCENT' FORMAT A20
+COLUMN ZAM_TYP Heading'TYP_CZESCI' FORMAT A20
+COLUMN ZAM_MODELE Heading'PASUJACE_DO_MODELI' FORMAT A20
+COLUMN ZAM_ROK Heading'ROK_PRODUKCJI' FORMAT A13
+COLUMN ZAM_NR_KAT Heading'NR_KATALOGOWY' FORMAT A20
+--
+SELECT * FROM ZAMIENNIK WHERE ZAM_NR_KAT LIKE '%267%';
+
+------------------
+--PERSPEKTYWY
+------------------
+
+create or replace view V_MODEL
+(MARKA,KRAJ,MODEL,LOGO)
+as
+select MAR_NAZWA,MAR_KRAJ,MOD_NAZWA,MOD_LOGO
+FROM MODEL,MARKA
+WHERE MARKA.MAR_ID= MODEL.MAR_ID;
+---
+COLUMN MARKA FORMAT A15
+COLUMN KRAJ FORMAT A15
+COLUMN MODEL FORMAT A30
+COLUMN LOGO FORMAT A30
+--
+select * from V_MODEL;
+
+
